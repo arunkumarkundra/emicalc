@@ -3,171 +3,295 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional EMI Calculator</title>
-    <link rel="stylesheet" href="style.css">
+    <title>💰 Enhanced EMI Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .slider {
+            -webkit-appearance: none;
+            background: linear-gradient(to right, #3b82f6 0%, #3b82f6 var(--value, 28%), #e5e7eb var(--value, 28%), #e5e7eb 100%);
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 0 1px #e5e7eb;
+        }
+        .increment-btn {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+        }
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .table-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
+<body class="min-h-screen bg-gray-50 py-8 px-4">
+    <div class="max-w-6xl mx-auto">
         <!-- Header -->
-        <div class="header">
-            <div class="header-icon-container">
-                <i data-lucide="calculator" class="header-icon"></i>
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                <i data-lucide="calculator" class="w-8 h-8 text-blue-600"></i>
             </div>
-            <h1>EMI Calculator</h1>
-            <p>Calculate your Equated Monthly Installment with our professional loan calculator</p>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">💰 EMI Calculator</h1>
+            <p class="text-gray-600 max-w-md mx-auto">
+                Calculate your Equated Monthly Installment with advanced analytics and export features
+            </p>
         </div>
 
-        <div class="grid">
+        <div class="grid lg:grid-cols-2 gap-8 mb-8">
             <!-- Input Form -->
-            <div class="card">
-                <h2>
-                    <i data-lucide="indian-rupee" class="icon icon-blue"></i>
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <i data-lucide="indian-rupee" class="w-5 h-5 mr-2 text-blue-600"></i>
                     Loan Details
                 </h2>
 
-                <div>
-                    <!-- Loan Amount -->
-                    <div class="form-group">
-                        <label for="loanAmount" class="form-label">
+                <div class="space-y-6">
+                    <!-- Loan Amount with Smart Increment -->
+                    <div>
+                        <label for="loanAmount" class="block text-sm font-medium text-gray-700 mb-2">
                             Loan Amount (₹)
                         </label>
-                        <input
-                            type="number"
-                            id="loanAmount"
-                            placeholder="e.g., 5000000"
-                            class="form-input"
-                        />
-                        <div id="loanAmountError" class="form-error"></div>
-                        <p class="form-help">Range: ₹1,000 to ₹10,00,00,000</p>
+                        <div class="flex items-center space-x-2">
+                            <button
+                                id="decreaseLoanAmount"
+                                class="increment-btn px-3 py-2 bg-gray-200 rounded-l-lg hover:bg-gray-300 transition-colors font-bold"
+                            >
+                                −
+                            </button>
+                            <input
+                                type="number"
+                                id="loanAmount"
+                                value="5000000"
+                                class="flex-1 px-4 py-3 border border-gray-300 text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors rounded-none"
+                            />
+                            <button
+                                id="increaseLoanAmount"
+                                class="increment-btn px-3 py-2 bg-gray-200 rounded-r-lg hover:bg-gray-300 transition-colors font-bold"
+                            >
+                                +
+                            </button>
+                        </div>
+                        <div id="loanAmountError" class="mt-1 text-sm text-red-600 hidden"></div>
+                        <p id="loanAmountIncrement" class="mt-1 text-xs text-gray-500"></p>
                     </div>
 
-                    <!-- Interest Rate -->
-                    <div class="form-group">
-                        <label for="interestRate" class="form-label">
-                            Annual Interest Rate (%)
+                    <!-- Interest Rate Slider -->
+                    <div>
+                        <label for="interestRate" class="block text-sm font-medium text-gray-700 mb-2">
+                            Annual Interest Rate: <span id="interestRateDisplay">8.5</span>%
                         </label>
                         <input
-                            type="number"
+                            type="range"
                             id="interestRate"
-                            placeholder="e.g., 8.5"
+                            min="0.1"
+                            max="30"
                             step="0.1"
-                            class="form-input"
+                            value="8.5"
+                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                         />
-                        <div id="interestRateError" class="form-error"></div>
-                        <p class="form-help">Range: 0.1% to 30%</p>
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>0.1%</span>
+                            <span>30%</span>
+                        </div>
                     </div>
 
-                    <!-- Loan Tenure -->
-                    <div class="form-group">
-                        <label for="loanTenure" class="form-label">
+                    <!-- Loan Tenure with Smart Increment -->
+                    <div>
+                        <label for="loanTenure" class="block text-sm font-medium text-gray-700 mb-2">
                             Loan Tenure (Months)
                         </label>
-                        <input
-                            type="number"
-                            id="loanTenure"
-                            placeholder="e.g., 180"
-                            class="form-input"
-                        />
-                        <div id="loanTenureError" class="form-error"></div>
-                        <p class="form-help">Range: 12 to 360 months (1 to 30 years)</p>
-                    </div>
-
-                    <!-- Calculate Button -->
-                    <div class="form-group">
-                        <button id="calculateBtn" class="btn-primary">
-                            <i data-lucide="calculator" class="icon"></i>
-                            Calculate EMI
-                        </button>
+                        <div class="flex items-center space-x-2">
+                            <button
+                                id="decreaseLoanTenure"
+                                class="increment-btn px-3 py-2 bg-gray-200 rounded-l-lg hover:bg-gray-300 transition-colors font-bold"
+                            >
+                                −
+                            </button>
+                            <input
+                                type="number"
+                                id="loanTenure"
+                                value="180"
+                                class="flex-1 px-4 py-3 border border-gray-300 text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors rounded-none"
+                            />
+                            <button
+                                id="increaseLoanTenure"
+                                class="increment-btn px-3 py-2 bg-gray-200 rounded-r-lg hover:bg-gray-300 transition-colors font-bold"
+                            >
+                                +
+                            </button>
+                        </div>
+                        <div id="loanTenureError" class="mt-1 text-sm text-red-600 hidden"></div>
+                        <p id="loanTenureIncrement" class="mt-1 text-xs text-gray-500"></p>
                     </div>
                 </div>
             </div>
 
             <!-- Results Panel -->
-            <div class="card">
-                <h2>
-                    <i data-lucide="trending-up" class="icon icon-green"></i>
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <i data-lucide="trending-up" class="w-5 h-5 mr-2 text-green-600"></i>
                     Calculation Results
                 </h2>
 
-                <div class="results-container">
+                <div class="space-y-4">
                     <!-- Monthly EMI -->
-                    <div class="result-card result-card-blue">
-                        <div class="result-label result-label-blue">Monthly EMI</div>
-                        <div id="monthlyEmi" class="result-value result-value-large result-value-blue">₹0</div>
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <div class="text-sm font-medium text-blue-600 mb-1">Monthly EMI</div>
+                        <div id="monthlyEmi" class="text-2xl font-bold text-blue-900">₹0</div>
                     </div>
 
                     <!-- Total Interest -->
-                    <div class="result-card result-card-orange">
-                        <div class="result-label result-label-orange">Total Interest Payable</div>
-                        <div id="totalInterest" class="result-value result-value-medium result-value-orange">₹0</div>
+                    <div class="bg-orange-50 rounded-lg p-4">
+                        <div class="text-sm font-medium text-orange-600 mb-1">Total Interest Payable</div>
+                        <div id="totalInterest" class="text-xl font-semibold text-orange-900">₹0</div>
                     </div>
 
                     <!-- Total Amount -->
-                    <div class="result-card result-card-green">
-                        <div class="result-label result-label-green">Total Amount Payable</div>
-                        <div id="totalAmount" class="result-value result-value-medium result-value-green">₹0</div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <div class="text-sm font-medium text-green-600 mb-1">Total Amount Payable</div>
+                        <div id="totalAmount" class="text-xl font-semibold text-green-900">₹0</div>
                     </div>
 
-                    <!-- Breakdown -->
-                    <div id="breakdown" class="breakdown">
-                        <h3>Payment Breakdown</h3>
-                        <div class="breakdown-grid">
-                            <div class="breakdown-item">
-                                <span>Principal:</span>
-                                <div id="principalDisplay">₹0</div>
-                            </div>
-                            <div class="breakdown-item">
-                                <span>Interest:</span>
-                                <div id="interestDisplay">₹0</div>
-                            </div>
-                            <div class="breakdown-item">
-                                <span>Tenure:</span>
-                                <div id="tenureDisplay">0 months</div>
-                            </div>
-                            <div class="breakdown-item">
-                                <span>Interest Rate:</span>
-                                <div id="rateDisplay">0% p.a.</div>
-                            </div>
-                        </div>
+                    <!-- Action Buttons -->
+                    <div class="grid grid-cols-2 gap-3 pt-4">
+                        <button
+                            id="exportCSV"
+                            class="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            disabled
+                        >
+                            <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+                            Export CSV
+                        </button>
+                        <button
+                            id="toggleSchedule"
+                            class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            disabled
+                        >
+                            <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                            Schedule
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Charts Section -->
+        <div id="chartsSection" class="grid lg:grid-cols-2 gap-8 mb-8 hidden">
+            <!-- Pie Chart -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i data-lucide="pie-chart" class="w-5 h-5 mr-2 text-purple-600"></i>
+                    Principal vs Interest
+                </h3>
+                <div class="h-64 flex items-center justify-center">
+                    <canvas id="pieChart" width="300" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Line Chart -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5 mr-2 text-indigo-600"></i>
+                    Payment Breakdown (First 12 Months)
+                </h3>
+                <div class="h-64">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Amortization Schedule -->
+        <div id="scheduleSection" class="bg-white rounded-lg shadow-lg p-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i data-lucide="calendar" class="w-5 h-5 mr-2 text-teal-600"></i>
+                Loan Repayment Schedule
+            </h3>
+            <div class="table-container">
+                <table id="scheduleTable" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">EMI</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Principal</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Interest</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleBody" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Footer -->
-        <div class="footer">
-            <p>This calculator provides estimates only. Please consult with your financial advisor for precise calculations.</p>
+        <div class="text-center mt-8">
+            <p class="text-sm text-gray-500">
+                This calculator provides estimates only. Please consult with your financial advisor for precise calculations.
+            </p>
         </div>
     </div>
 
     <script>
-        // Initialize Lucide icons
-        document.addEventListener('DOMContentLoaded', function() {
-            lucide.createIcons();
-        });
+        // Global variables
+        let loanAmount = 5000000;
+        let interestRate = 8.5;
+        let loanTenure = 180;
+        let amortizationSchedule = [];
+        let pieChart, lineChart;
 
-        // Get DOM elements
+        // DOM elements
         const loanAmountInput = document.getElementById('loanAmount');
         const interestRateInput = document.getElementById('interestRate');
         const loanTenureInput = document.getElementById('loanTenure');
-        const calculateBtn = document.getElementById('calculateBtn');
+        const interestRateDisplay = document.getElementById('interestRateDisplay');
+        const loanAmountIncrement = document.getElementById('loanAmountIncrement');
+        const loanTenureIncrement = document.getElementById('loanTenureIncrement');
 
-        const monthlyEmiElement = document.getElementById('monthlyEmi');
-        const totalInterestElement = document.getElementById('totalInterest');
-        const totalAmountElement = document.getElementById('totalAmount');
-        const breakdownElement = document.getElementById('breakdown');
+        // Initialize icons
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            updateIncrementLabels();
+            calculateEmi();
+        });
 
-        const loanAmountError = document.getElementById('loanAmountError');
-        const interestRateError = document.getElementById('interestRateError');
-        const loanTenureError = document.getElementById('loanTenureError');
+        // Smart increment calculation
+        function getSmartIncrement(value, type = 'amount') {
+            if (type === 'amount') {
+                if (value <= 10000) return 100;
+                if (value <= 100000) return 1000;
+                if (value <= 1000000) return 10000;
+                return 100000;
+            } else if (type === 'tenure') {
+                if (value <= 24) return 1;
+                if (value <= 60) return 3;
+                return 6;
+            }
+            return 1;
+        }
 
-        const principalDisplay = document.getElementById('principalDisplay');
-        const interestDisplay = document.getElementById('interestDisplay');
-        const tenureDisplay = document.getElementById('tenureDisplay');
-        const rateDisplay = document.getElementById('rateDisplay');
-
-        // Format currency for display
+        // Format currency
         function formatCurrency(amount) {
             return new Intl.NumberFormat('en-IN', {
                 style: 'currency',
@@ -177,130 +301,282 @@
             }).format(amount);
         }
 
-        // Validation function
-        function validateInputs() {
-            let isValid = true;
-            const loanAmount = parseFloat(loanAmountInput.value);
-            const interestRate = parseFloat(interestRateInput.value);
-            const loanTenure = parseInt(loanTenureInput.value);
-
-            // Clear previous errors
-            loanAmountError.classList.remove('show');
-            interestRateError.classList.remove('show');
-            loanTenureError.classList.remove('show');
-
-            // Reset input borders
-            loanAmountInput.classList.remove('error');
-            interestRateInput.classList.remove('error');
-            loanTenureInput.classList.remove('error');
-
-            // Validate loan amount
-            if (!loanAmount || loanAmount < 1000 || loanAmount > 100000000) {
-                loanAmountError.textContent = 'Loan amount must be between ₹1,000 and ₹10,00,00,000';
-                loanAmountError.classList.add('show');
-                loanAmountInput.classList.add('error');
-                isValid = false;
-            }
-
-            // Validate interest rate
-            if (!interestRate || interestRate < 0.1 || interestRate > 30) {
-                interestRateError.textContent = 'Interest rate must be between 0.1% and 30%';
-                interestRateError.classList.add('show');
-                interestRateInput.classList.add('error');
-                isValid = false;
-            }
-
-            // Validate loan tenure
-            if (!loanTenure || loanTenure < 12 || loanTenure > 360) {
-                loanTenureError.textContent = 'Loan tenure must be between 12 and 360 months';
-                loanTenureError.classList.add('show');
-                loanTenureInput.classList.add('error');
-                isValid = false;
-            }
-
-            return isValid;
-        }
-
-        // EMI Calculation function
-        function calculateEmi() {
-            // Add calculating state
-            calculateBtn.classList.add('calculating');
+        // Update increment labels
+        function updateIncrementLabels() {
+            const amountIncrement = getSmartIncrement(loanAmount, 'amount');
+            const tenureIncrement = getSmartIncrement(loanTenure, 'tenure');
             
-            setTimeout(() => {
-                if (!validateInputs()) {
-                    monthlyEmiElement.textContent = '₹0';
-                    totalInterestElement.textContent = '₹0';
-                    totalAmountElement.textContent = '₹0';
-                    breakdownElement.classList.remove('show');
-                    calculateBtn.classList.remove('calculating');
-                    return;
-                }
-
-                const principal = parseFloat(loanAmountInput.value);
-                const annualRate = parseFloat(interestRateInput.value);
-                const months = parseInt(loanTenureInput.value);
-                const monthlyRate = annualRate / 12 / 100;
-
-                let emi, totalAmount, totalInterest;
-
-                if (monthlyRate === 0) {
-                    // Simple calculation for 0% interest
-                    emi = principal / months;
-                    totalAmount = principal;
-                    totalInterest = 0;
-                } else {
-                    // EMI calculation using the standard formula
-                    emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) / 
-                          (Math.pow(1 + monthlyRate, months) - 1);
-                    totalAmount = emi * months;
-                    totalInterest = totalAmount - principal;
-                }
-
-                // Update display with animation
-                monthlyEmiElement.textContent = formatCurrency(emi);
-                totalInterestElement.textContent = formatCurrency(totalInterest);
-                totalAmountElement.textContent = formatCurrency(totalAmount);
-
-                // Update breakdown
-                principalDisplay.textContent = formatCurrency(principal);
-                interestDisplay.textContent = formatCurrency(totalInterest);
-                tenureDisplay.textContent = months + ' months';
-                rateDisplay.textContent = annualRate + '% p.a.';
-
-                // Show breakdown with animation
-                breakdownElement.classList.add('show', 'fade-in');
-                calculateBtn.classList.remove('calculating');
-            }, 100); // Small delay for better UX
+            loanAmountIncrement.textContent = `Smart increment: ${formatCurrency(amountIncrement)}`;
+            loanTenureIncrement.textContent = `Smart increment: ${tenureIncrement} months (${Math.round(loanTenure/12)} years)`;
         }
 
-        // Auto-calculate with debouncing
-        let timeoutId;
-        function autoCalculate() {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                if (loanAmountInput.value && interestRateInput.value && loanTenureInput.value) {
-                    calculateEmi();
+        // Update slider background
+        function updateSliderBackground() {
+            const percentage = ((interestRate - 0.1) / (30 - 0.1)) * 100;
+            interestRateInput.style.setProperty('--value', percentage + '%');
+        }
+
+        // Generate amortization schedule
+        function generateAmortizationSchedule(principal, monthlyRate, months, emi) {
+            const schedule = [];
+            let remainingBalance = principal;
+
+            for (let month = 1; month <= months; month++) {
+                const interestPayment = remainingBalance * monthlyRate;
+                const principalPayment = emi - interestPayment;
+                remainingBalance = Math.max(0, remainingBalance - principalPayment);
+
+                schedule.push({
+                    month,
+                    emi: emi,
+                    principal: principalPayment,
+                    interest: interestPayment,
+                    balance: remainingBalance
+                });
+            }
+
+            return schedule;
+        }
+
+        // Calculate EMI
+        function calculateEmi() {
+            const principal = parseFloat(loanAmount);
+            const monthlyRate = parseFloat(interestRate) / 12 / 100;
+            const months = parseInt(loanTenure);
+
+            let emi, totalAmount, totalInterest;
+
+            if (monthlyRate === 0) {
+                emi = principal / months;
+                totalAmount = principal;
+                totalInterest = 0;
+            } else {
+                emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) / 
+                      (Math.pow(1 + monthlyRate, months) - 1);
+                totalAmount = emi * months;
+                totalInterest = totalAmount - principal;
+            }
+
+            // Update display
+            document.getElementById('monthlyEmi').textContent = formatCurrency(emi);
+            document.getElementById('totalInterest').textContent = formatCurrency(totalInterest);
+            document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+
+            // Generate schedule
+            amortizationSchedule = generateAmortizationSchedule(principal, monthlyRate, months, emi);
+
+            // Enable buttons
+            document.getElementById('exportCSV').disabled = false;
+            document.getElementById('toggleSchedule').disabled = false;
+
+            // Update charts
+            updateCharts(principal, totalInterest);
+            updateIncrementLabels();
+        }
+
+        // Update charts
+        function updateCharts(principal, totalInterest) {
+            document.getElementById('chartsSection').classList.remove('hidden');
+
+            // Destroy existing charts
+            if (pieChart) pieChart.destroy();
+            if (lineChart) lineChart.destroy();
+
+            // Pie Chart
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            pieChart = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Principal', 'Interest'],
+                    datasets: [{
+                        data: [principal, totalInterest],
+                        backgroundColor: ['#3b82f6', '#f59e0b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + formatCurrency(context.parsed);
+                                }
+                            }
+                        }
+                    }
                 }
-            }, 500); // Slightly longer delay for auto-calculation
+            });
+
+            // Line Chart (first 12 months)
+            const lineCtx = document.getElementById('lineChart').getContext('2d');
+            const first12Months = amortizationSchedule.slice(0, 12);
+            
+            lineChart = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: first12Months.map(item => `Month ${item.month}`),
+                    datasets: [{
+                        label: 'Principal',
+                        data: first12Months.map(item => Math.round(item.principal)),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.1
+                    }, {
+                        label: 'Interest',
+                        data: first12Months.map(item => Math.round(item.interest)),
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + new Intl.NumberFormat('en-IN').format(value);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            const csvContent = [
+                ['EMI Calculator Report'],
+                ['Loan Amount', formatCurrency(loanAmount)],
+                ['Interest Rate', `${interestRate}%`],
+                ['Loan Tenure', `${loanTenure} months`],
+                ['Monthly EMI', document.getElementById('monthlyEmi').textContent],
+                ['Total Interest', document.getElementById('totalInterest').textContent],
+                ['Total Amount', document.getElementById('totalAmount').textContent],
+                [],
+                ['Month', 'EMI', 'Principal', 'Interest', 'Balance'],
+                ...amortizationSchedule.map(row => [
+                    row.month,
+                    Math.round(row.emi),
+                    Math.round(row.principal),
+                    Math.round(row.interest),
+                    Math.round(row.balance)
+                ])
+            ].map(row => row.join(',')).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `EMICalc_${loanAmount}_${interestRate}_${loanTenure}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Toggle schedule
+        function toggleSchedule() {
+            const scheduleSection = document.getElementById('scheduleSection');
+            const isHidden = scheduleSection.classList.contains('hidden');
+            
+            if (isHidden) {
+                // Show schedule
+                scheduleSection.classList.remove('hidden');
+                
+                // Populate table
+                const tbody = document.getElementById('scheduleBody');
+                tbody.innerHTML = amortizationSchedule.map((row, index) => `
+                    <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.month}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(row.emi)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">${formatCurrency(row.principal)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600">${formatCurrency(row.interest)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(row.balance)}</td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('toggleSchedule').innerHTML = `
+                    <i data-lucide="eye-off" class="w-4 h-4 mr-2"></i>
+                    Hide Schedule
+                `;
+            } else {
+                // Hide schedule
+                scheduleSection.classList.add('hidden');
+                document.getElementById('toggleSchedule').innerHTML = `
+                    <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                    Schedule
+                `;
+            }
+            
+            lucide.createIcons();
         }
 
         // Event listeners
-        loanAmountInput.addEventListener('input', autoCalculate);
-        interestRateInput.addEventListener('input', autoCalculate);
-        loanTenureInput.addEventListener('input', autoCalculate);
-        calculateBtn.addEventListener('click', calculateEmi);
-
-        // Add loading effect on inputs
-        [loanAmountInput, interestRateInput, loanTenureInput].forEach(input => {
-            input.addEventListener('focus', function() {
-                this.style.transform = 'scale(1.02)';
-                this.style.transition = 'transform 0.2s ease';
-            });
-            
-            input.addEventListener('blur', function() {
-                this.style.transform = 'scale(1)';
-            });
+        document.getElementById('decreaseLoanAmount').addEventListener('click', () => {
+            loanAmount = Math.max(1000, loanAmount - getSmartIncrement(loanAmount, 'amount'));
+            loanAmountInput.value = loanAmount;
+            calculateEmi();
         });
+
+        document.getElementById('increaseLoanAmount').addEventListener('click', () => {
+            loanAmount = Math.min(100000000, loanAmount + getSmartIncrement(loanAmount, 'amount'));
+            loanAmountInput.value = loanAmount;
+            calculateEmi();
+        });
+
+        document.getElementById('decreaseLoanTenure').addEventListener('click', () => {
+            loanTenure = Math.max(12, loanTenure - getSmartIncrement(loanTenure, 'tenure'));
+            loanTenureInput.value = loanTenure;
+            calculateEmi();
+        });
+
+        document.getElementById('increaseLoanTenure').addEventListener('click', () => {
+            loanTenure = Math.min(360, loanTenure + getSmartIncrement(loanTenure, 'tenure'));
+            loanTenureInput.value = loanTenure;
+            calculateEmi();
+        });
+
+        loanAmountInput.addEventListener('input', (e) => {
+            loanAmount = parseFloat(e.target.value) || 0;
+            setTimeout(calculateEmi, 300);
+        });
+
+        interestRateInput.addEventListener('input', (e) => {
+            interestRate = parseFloat(e.target.value);
+            interestRateDisplay.textContent = interestRate;
+            updateSliderBackground();
+            setTimeout(calculateEmi, 300);
+        });
+
+        loanTenureInput.addEventListener('input', (e) => {
+            loanTenure = parseInt(e.target.value) || 0;
+            setTimeout(calculateEmi, 300);
+        });
+
+        document.getElementById('exportCSV').addEventListener('click', exportToCSV);
+        document.getElementById('toggleSchedule').addEventListener('click', toggleSchedule);
+
+        // Initialize slider background
+        updateSliderBackground();
     </script>
 </body>
 </html>
