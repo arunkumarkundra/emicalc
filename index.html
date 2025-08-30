@@ -1,266 +1,306 @@
-import React, { useState, useEffect } from 'react';
-import { Calculator, IndianRupee, Calendar, TrendingUp } from 'lucide-react';
-
-const EmiCalculator = () => {
-  const [loanAmount, setLoanAmount] = useState('');
-  const [interestRate, setInterestRate] = useState('');
-  const [loanTenure, setLoanTenure] = useState('');
-  const [results, setResults] = useState({
-    monthlyEmi: 0,
-    totalInterest: 0,
-    totalAmount: 0
-  });
-  const [errors, setErrors] = useState({});
-
-  // Validation function
-  const validateInputs = () => {
-    const newErrors = {};
-    
-    if (!loanAmount || loanAmount < 1000 || loanAmount > 100000000) {
-      newErrors.loanAmount = 'Loan amount must be between ₹1,000 and ₹10,00,00,000';
-    }
-    
-    if (!interestRate || interestRate < 0.1 || interestRate > 30) {
-      newErrors.interestRate = 'Interest rate must be between 0.1% and 30%';
-    }
-    
-    if (!loanTenure || loanTenure < 12 || loanTenure > 360) {
-      newErrors.loanTenure = 'Loan tenure must be between 12 and 360 months';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // EMI Calculation function
-  const calculateEmi = () => {
-    if (!validateInputs()) {
-      setResults({ monthlyEmi: 0, totalInterest: 0, totalAmount: 0 });
-      return;
-    }
-
-    const principal = parseFloat(loanAmount);
-    const monthlyRate = parseFloat(interestRate) / 12 / 100;
-    const months = parseInt(loanTenure);
-
-    if (monthlyRate === 0) {
-      // Simple calculation for 0% interest
-      const emi = principal / months;
-      setResults({
-        monthlyEmi: emi,
-        totalInterest: 0,
-        totalAmount: principal
-      });
-      return;
-    }
-
-    // EMI calculation using the standard formula
-    const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) / 
-                (Math.pow(1 + monthlyRate, months) - 1);
-    
-    const totalAmount = emi * months;
-    const totalInterest = totalAmount - principal;
-
-    setResults({
-      monthlyEmi: emi,
-      totalInterest: totalInterest,
-      totalAmount: totalAmount
-    });
-  };
-
-  // Auto-calculate when inputs change
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (loanAmount && interestRate && loanTenure) {
-        calculateEmi();
-      }
-    }, 300); // 300ms delay to avoid excessive calculations
-
-    return () => clearTimeout(timeoutId);
-  }, [loanAmount, interestRate, loanTenure]);
-
-  // Format currency for display
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
-  // Format number with commas
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat('en-IN').format(Math.round(num));
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <Calculator className="w-8 h-8 text-blue-600" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">EMI Calculator</h1>
-          <p className="text-gray-600 max-w-md mx-auto">
-            Calculate your Equated Monthly Installment with our professional loan calculator
-          </p>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Input Form */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <IndianRupee className="w-5 h-5 mr-2 text-blue-600" />
-              Loan Details
-            </h2>
-
-            <div className="space-y-6">
-              {/* Loan Amount */}
-              <div>
-                <label htmlFor="loanAmount" className="block text-sm font-medium text-gray-700 mb-2">
-                  Loan Amount (₹)
-                </label>
-                <input
-                  type="number"
-                  id="loanAmount"
-                  value={loanAmount}
-                  onChange={(e) => setLoanAmount(e.target.value)}
-                  placeholder="e.g., 5000000"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                    errors.loanAmount ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors.loanAmount && (
-                  <p className="mt-1 text-sm text-red-600">{errors.loanAmount}</p>
-                )}
-                <p className="mt-1 text-xs text-gray-500">Range: ₹1,000 to ₹10,00,00,000</p>
-              </div>
-
-              {/* Interest Rate */}
-              <div>
-                <label htmlFor="interestRate" className="block text-sm font-medium text-gray-700 mb-2">
-                  Annual Interest Rate (%)
-                </label>
-                <input
-                  type="number"
-                  id="interestRate"
-                  value={interestRate}
-                  onChange={(e) => setInterestRate(e.target.value)}
-                  placeholder="e.g., 8.5"
-                  step="0.1"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                    errors.interestRate ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors.interestRate && (
-                  <p className="mt-1 text-sm text-red-600">{errors.interestRate}</p>
-                )}
-                <p className="mt-1 text-xs text-gray-500">Range: 0.1% to 30%</p>
-              </div>
-
-              {/* Loan Tenure */}
-              <div>
-                <label htmlFor="loanTenure" className="block text-sm font-medium text-gray-700 mb-2">
-                  Loan Tenure (Months)
-                </label>
-                <input
-                  type="number"
-                  id="loanTenure"
-                  value={loanTenure}
-                  onChange={(e) => setLoanTenure(e.target.value)}
-                  placeholder="e.g., 180"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                    errors.loanTenure ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors.loanTenure && (
-                  <p className="mt-1 text-sm text-red-600">{errors.loanTenure}</p>
-                )}
-                <p className="mt-1 text-xs text-gray-500">Range: 12 to 360 months (1 to 30 years)</p>
-              </div>
-
-              {/* Calculate Button */}
-              <button
-                onClick={calculateEmi}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
-              >
-                <Calculator className="w-4 h-4 mr-2" />
-                Calculate EMI
-              </button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional EMI Calculator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-icon-container">
+                <i data-lucide="calculator" class="header-icon"></i>
             </div>
-          </div>
+            <h1>EMI Calculator</h1>
+            <p>Calculate your Equated Monthly Installment with our professional loan calculator</p>
+        </div>
 
-          {/* Results Panel */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
-              Calculation Results
-            </h2>
+        <div class="grid">
+            <!-- Input Form -->
+            <div class="card">
+                <h2>
+                    <i data-lucide="indian-rupee" class="icon icon-blue"></i>
+                    Loan Details
+                </h2>
 
-            <div className="space-y-4">
-              {/* Monthly EMI */}
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="text-sm font-medium text-blue-600 mb-1">Monthly EMI</div>
-                <div className="text-2xl font-bold text-blue-900">
-                  {results.monthlyEmi > 0 ? formatCurrency(results.monthlyEmi) : '₹0'}
-                </div>
-              </div>
-
-              {/* Total Interest */}
-              <div className="bg-orange-50 rounded-lg p-4">
-                <div className="text-sm font-medium text-orange-600 mb-1">Total Interest Payable</div>
-                <div className="text-xl font-semibold text-orange-900">
-                  {results.totalInterest > 0 ? formatCurrency(results.totalInterest) : '₹0'}
-                </div>
-              </div>
-
-              {/* Total Amount */}
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="text-sm font-medium text-green-600 mb-1">Total Amount Payable</div>
-                <div className="text-xl font-semibold text-green-900">
-                  {results.totalAmount > 0 ? formatCurrency(results.totalAmount) : '₹0'}
-                </div>
-              </div>
-
-              {/* Breakdown */}
-              {results.monthlyEmi > 0 && (
-                <div className="border-t pt-4 mt-6">
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Payment Breakdown</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Principal:</span>
-                      <div className="font-medium">{formatCurrency(parseFloat(loanAmount || 0))}</div>
+                <div>
+                    <!-- Loan Amount -->
+                    <div class="form-group">
+                        <label for="loanAmount" class="form-label">
+                            Loan Amount (₹)
+                        </label>
+                        <input
+                            type="number"
+                            id="loanAmount"
+                            placeholder="e.g., 5000000"
+                            class="form-input"
+                        />
+                        <div id="loanAmountError" class="form-error"></div>
+                        <p class="form-help">Range: ₹1,000 to ₹10,00,00,000</p>
                     </div>
-                    <div>
-                      <span className="text-gray-600">Interest:</span>
-                      <div className="font-medium">{formatCurrency(results.totalInterest)}</div>
+
+                    <!-- Interest Rate -->
+                    <div class="form-group">
+                        <label for="interestRate" class="form-label">
+                            Annual Interest Rate (%)
+                        </label>
+                        <input
+                            type="number"
+                            id="interestRate"
+                            placeholder="e.g., 8.5"
+                            step="0.1"
+                            class="form-input"
+                        />
+                        <div id="interestRateError" class="form-error"></div>
+                        <p class="form-help">Range: 0.1% to 30%</p>
                     </div>
-                    <div>
-                      <span className="text-gray-600">Tenure:</span>
-                      <div className="font-medium">{loanTenure} months</div>
+
+                    <!-- Loan Tenure -->
+                    <div class="form-group">
+                        <label for="loanTenure" class="form-label">
+                            Loan Tenure (Months)
+                        </label>
+                        <input
+                            type="number"
+                            id="loanTenure"
+                            placeholder="e.g., 180"
+                            class="form-input"
+                        />
+                        <div id="loanTenureError" class="form-error"></div>
+                        <p class="form-help">Range: 12 to 360 months (1 to 30 years)</p>
                     </div>
-                    <div>
-                      <span className="text-gray-600">Interest Rate:</span>
-                      <div className="font-medium">{interestRate}% p.a.</div>
+
+                    <!-- Calculate Button -->
+                    <div class="form-group">
+                        <button id="calculateBtn" class="btn-primary">
+                            <i data-lucide="calculator" class="icon"></i>
+                            Calculate EMI
+                        </button>
                     </div>
-                  </div>
                 </div>
-              )}
             </div>
-          </div>
+
+            <!-- Results Panel -->
+            <div class="card">
+                <h2>
+                    <i data-lucide="trending-up" class="icon icon-green"></i>
+                    Calculation Results
+                </h2>
+
+                <div class="results-container">
+                    <!-- Monthly EMI -->
+                    <div class="result-card result-card-blue">
+                        <div class="result-label result-label-blue">Monthly EMI</div>
+                        <div id="monthlyEmi" class="result-value result-value-large result-value-blue">₹0</div>
+                    </div>
+
+                    <!-- Total Interest -->
+                    <div class="result-card result-card-orange">
+                        <div class="result-label result-label-orange">Total Interest Payable</div>
+                        <div id="totalInterest" class="result-value result-value-medium result-value-orange">₹0</div>
+                    </div>
+
+                    <!-- Total Amount -->
+                    <div class="result-card result-card-green">
+                        <div class="result-label result-label-green">Total Amount Payable</div>
+                        <div id="totalAmount" class="result-value result-value-medium result-value-green">₹0</div>
+                    </div>
+
+                    <!-- Breakdown -->
+                    <div id="breakdown" class="breakdown">
+                        <h3>Payment Breakdown</h3>
+                        <div class="breakdown-grid">
+                            <div class="breakdown-item">
+                                <span>Principal:</span>
+                                <div id="principalDisplay">₹0</div>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Interest:</span>
+                                <div id="interestDisplay">₹0</div>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Tenure:</span>
+                                <div id="tenureDisplay">0 months</div>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Interest Rate:</span>
+                                <div id="rateDisplay">0% p.a.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <p className="text-sm text-gray-500">
-            This calculator provides estimates only. Please consult with your financial advisor for precise calculations.
-          </p>
+        <!-- Footer -->
+        <div class="footer">
+            <p>This calculator provides estimates only. Please consult with your financial advisor for precise calculations.</p>
         </div>
-      </div>
     </div>
-  );
-};
 
-export default EmiCalculator;
+    <script>
+        // Initialize Lucide icons
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+        });
+
+        // Get DOM elements
+        const loanAmountInput = document.getElementById('loanAmount');
+        const interestRateInput = document.getElementById('interestRate');
+        const loanTenureInput = document.getElementById('loanTenure');
+        const calculateBtn = document.getElementById('calculateBtn');
+
+        const monthlyEmiElement = document.getElementById('monthlyEmi');
+        const totalInterestElement = document.getElementById('totalInterest');
+        const totalAmountElement = document.getElementById('totalAmount');
+        const breakdownElement = document.getElementById('breakdown');
+
+        const loanAmountError = document.getElementById('loanAmountError');
+        const interestRateError = document.getElementById('interestRateError');
+        const loanTenureError = document.getElementById('loanTenureError');
+
+        const principalDisplay = document.getElementById('principalDisplay');
+        const interestDisplay = document.getElementById('interestDisplay');
+        const tenureDisplay = document.getElementById('tenureDisplay');
+        const rateDisplay = document.getElementById('rateDisplay');
+
+        // Format currency for display
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Validation function
+        function validateInputs() {
+            let isValid = true;
+            const loanAmount = parseFloat(loanAmountInput.value);
+            const interestRate = parseFloat(interestRateInput.value);
+            const loanTenure = parseInt(loanTenureInput.value);
+
+            // Clear previous errors
+            loanAmountError.classList.remove('show');
+            interestRateError.classList.remove('show');
+            loanTenureError.classList.remove('show');
+
+            // Reset input borders
+            loanAmountInput.classList.remove('error');
+            interestRateInput.classList.remove('error');
+            loanTenureInput.classList.remove('error');
+
+            // Validate loan amount
+            if (!loanAmount || loanAmount < 1000 || loanAmount > 100000000) {
+                loanAmountError.textContent = 'Loan amount must be between ₹1,000 and ₹10,00,00,000';
+                loanAmountError.classList.add('show');
+                loanAmountInput.classList.add('error');
+                isValid = false;
+            }
+
+            // Validate interest rate
+            if (!interestRate || interestRate < 0.1 || interestRate > 30) {
+                interestRateError.textContent = 'Interest rate must be between 0.1% and 30%';
+                interestRateError.classList.add('show');
+                interestRateInput.classList.add('error');
+                isValid = false;
+            }
+
+            // Validate loan tenure
+            if (!loanTenure || loanTenure < 12 || loanTenure > 360) {
+                loanTenureError.textContent = 'Loan tenure must be between 12 and 360 months';
+                loanTenureError.classList.add('show');
+                loanTenureInput.classList.add('error');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // EMI Calculation function
+        function calculateEmi() {
+            // Add calculating state
+            calculateBtn.classList.add('calculating');
+            
+            setTimeout(() => {
+                if (!validateInputs()) {
+                    monthlyEmiElement.textContent = '₹0';
+                    totalInterestElement.textContent = '₹0';
+                    totalAmountElement.textContent = '₹0';
+                    breakdownElement.classList.remove('show');
+                    calculateBtn.classList.remove('calculating');
+                    return;
+                }
+
+                const principal = parseFloat(loanAmountInput.value);
+                const annualRate = parseFloat(interestRateInput.value);
+                const months = parseInt(loanTenureInput.value);
+                const monthlyRate = annualRate / 12 / 100;
+
+                let emi, totalAmount, totalInterest;
+
+                if (monthlyRate === 0) {
+                    // Simple calculation for 0% interest
+                    emi = principal / months;
+                    totalAmount = principal;
+                    totalInterest = 0;
+                } else {
+                    // EMI calculation using the standard formula
+                    emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) / 
+                          (Math.pow(1 + monthlyRate, months) - 1);
+                    totalAmount = emi * months;
+                    totalInterest = totalAmount - principal;
+                }
+
+                // Update display with animation
+                monthlyEmiElement.textContent = formatCurrency(emi);
+                totalInterestElement.textContent = formatCurrency(totalInterest);
+                totalAmountElement.textContent = formatCurrency(totalAmount);
+
+                // Update breakdown
+                principalDisplay.textContent = formatCurrency(principal);
+                interestDisplay.textContent = formatCurrency(totalInterest);
+                tenureDisplay.textContent = months + ' months';
+                rateDisplay.textContent = annualRate + '% p.a.';
+
+                // Show breakdown with animation
+                breakdownElement.classList.add('show', 'fade-in');
+                calculateBtn.classList.remove('calculating');
+            }, 100); // Small delay for better UX
+        }
+
+        // Auto-calculate with debouncing
+        let timeoutId;
+        function autoCalculate() {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                if (loanAmountInput.value && interestRateInput.value && loanTenureInput.value) {
+                    calculateEmi();
+                }
+            }, 500); // Slightly longer delay for auto-calculation
+        }
+
+        // Event listeners
+        loanAmountInput.addEventListener('input', autoCalculate);
+        interestRateInput.addEventListener('input', autoCalculate);
+        loanTenureInput.addEventListener('input', autoCalculate);
+        calculateBtn.addEventListener('click', calculateEmi);
+
+        // Add loading effect on inputs
+        [loanAmountInput, interestRateInput, loanTenureInput].forEach(input => {
+            input.addEventListener('focus', function() {
+                this.style.transform = 'scale(1.02)';
+                this.style.transition = 'transform 0.2s ease';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
