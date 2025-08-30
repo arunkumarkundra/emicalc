@@ -275,7 +275,13 @@
         // Initialize icons and calculate EMI immediately
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
-            lucide.createIcons();
+            
+            // Initialize Lucide icons with fallback
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                console.warn('Lucide not loaded, continuing without icons');
+            }
             
             // Small delay to ensure all elements are ready
             setTimeout(() => {
@@ -291,7 +297,7 @@
                 
                 // Force immediate calculation on page load
                 calculateEmi();
-            }, 100);
+            }, 200);
         });
 
         // Smart increment calculation
