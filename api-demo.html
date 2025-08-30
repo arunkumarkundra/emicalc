@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EMI Calculator API Demo</title>
+</head>
+<body>
+    <h1>EMI Calculator JavaScript Library Demo</h1>
+    
+    <script src="emicalc-api.js"></script>
+    <script>
+        // Demo usage
+        console.log('EMI for 5L loan:', EMICalculator.calculateEMI(500000, 10.5, 60));
+        
+        const schedule = EMICalculator.generateSchedule(100000, 12, 12);
+        console.log('First month:', schedule[0]);
+        console.log('Last month:', schedule[11]);
+    </script>
+</body>
+</html>
