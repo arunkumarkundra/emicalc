@@ -215,7 +215,7 @@
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <i data-lucide="bar-chart-3" class="w-5 h-5 mr-2 text-indigo-600"></i>
-                    Payment Breakdown (Full Tenure)
+                    Monthly Payment Breakdown
                 </h3>
                 <div class="h-64">
                     <canvas id="lineChart"></canvas>
@@ -272,10 +272,12 @@
         const loanAmountIncrement = document.getElementById('loanAmountIncrement');
         const loanTenureIncrement = document.getElementById('loanTenureIncrement');
 
-        // Initialize icons
+        // Initialize icons and calculate EMI immediately
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
             updateIncrementLabels();
+            updateSliderBackground();
+            // Force immediate calculation on page load
             calculateEmi();
         });
 
@@ -580,10 +582,8 @@
             let currentPage = 1;
             
             while (currentRow < amortizationSchedule.length) {
-                // Add new page for schedule (except for first time)
-                if (currentPage > 1) {
-                    pdf.addPage();
-                }
+                // Add new page for schedule
+                pdf.addPage();
                 
                 pdf.setFontSize(16);
                 pdf.setFont(undefined, 'bold');
@@ -689,3 +689,4 @@
     </script>
 </body>
 </html>
+            
