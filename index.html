@@ -1,4 +1,39 @@
-<!DOCTYPE html>
+// Toggle schedule
+        function toggleSchedule() {
+            const scheduleSection = document.getElementById('scheduleSection');
+            const isHidden = scheduleSection.classList.contains('hidden');
+            
+            if (isHidden) {
+                // Show schedule
+                scheduleSection.classList.remove('hidden');
+                
+                // Populate table
+                const tbody = document.getElementById('scheduleBody');
+                tbody.innerHTML = amortizationSchedule.map((row, index) => `
+                    <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.month}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(row.emi)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">${formatCurrency(row.principal)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600">${formatCurrency(row.interest)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(row.balance)}</td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('toggleSchedule').innerHTML = `
+                    <i data-lucide="eye-off" class="w-4 h-4 mr-2"></i>
+                    Hide Schedule
+                `;
+            } else {
+                // Hide schedule
+                scheduleSection.classList.add('hidden');
+                document.getElementById('toggleSchedule').innerHTML = `
+                    <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                    Schedule
+                `;
+            }
+            
+            lucide.createIcons();
+        }<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -7,6 +42,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -175,7 +211,7 @@
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="grid grid-cols-2 gap-3 pt-4">
+                    <div class="grid grid-cols-1 gap-3 pt-4">
                         <button
                             id="exportCSV"
                             class="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -183,14 +219,6 @@
                         >
                             <i data-lucide="download" class="w-4 h-4 mr-2"></i>
                             Export CSV
-                        </button>
-                        <button
-                            id="toggleSchedule"
-                            class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            disabled
-                        >
-                            <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
-                            Schedule
                         </button>
                     </div>
                 </div>
@@ -214,7 +242,7 @@
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <i data-lucide="bar-chart-3" class="w-5 h-5 mr-2 text-indigo-600"></i>
-                    Payment Breakdown (First 12 Months)
+                    Payment Breakdown (Full Tenure)
                 </h3>
                 <div class="h-64">
                     <canvas id="lineChart"></canvas>
@@ -223,11 +251,21 @@
         </div>
 
         <!-- Amortization Schedule -->
-        <div id="scheduleSection" class="bg-white rounded-lg shadow-lg p-6 hidden">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <i data-lucide="calendar" class="w-5 h-5 mr-2 text-teal-600"></i>
-                Loan Repayment Schedule
-            </h3>
+        <div id="scheduleSection" class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i data-lucide="calendar" class="w-5 h-5 mr-2 text-teal-600"></i>
+                    Loan Repayment Schedule
+                </h3>
+                <button
+                    id="exportPDF"
+                    class="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    disabled
+                >
+                    <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                    Download PDF
+                </button>
+            </div>
             <div class="table-container">
                 <table id="scheduleTable" class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50 sticky top-0">
@@ -291,14 +329,20 @@
             return 1;
         }
 
-        // Format currency
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('en-IN', {
-                style: 'currency',
+        // Format currency for display (without symbol for CSV)
+        function formatCurrency(amount, includeSymbol = true) {
+            const formatted = new Intl.NumberFormat('en-IN', {
+                style: includeSymbol ? 'currency' : 'decimal',
                 currency: 'INR',
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
             }).format(amount);
+            return includeSymbol ? formatted : formatted;
+        }
+
+        // Format currency for CSV (no commas, no symbols)
+        function formatCurrencyForCSV(amount) {
+            return Math.round(amount).toString();
         }
 
         // Update increment labels
@@ -367,13 +411,29 @@
 
             // Enable buttons
             document.getElementById('exportCSV').disabled = false;
-            document.getElementById('toggleSchedule').disabled = false;
+            document.getElementById('exportPDF').disabled = false;
 
-            // Update charts
+            // Populate schedule table
+            populateScheduleTable();
+
+            // Populate schedule table
+        function populateScheduleTable() {
+            const tbody = document.getElementById('scheduleBody');
+            tbody.innerHTML = amortizationSchedule.map((row, index) => `
+                <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.month}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(row.emi)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">${formatCurrency(row.principal)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600">${formatCurrency(row.interest)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(row.balance)}</td>
+                </tr>
+            `).join('');
+        }
             updateCharts(principal, totalInterest);
             updateIncrementLabels();
         }
 
+        // Update charts
         // Update charts
         function updateCharts(principal, totalInterest) {
             document.getElementById('chartsSection').classList.remove('hidden');
@@ -407,7 +467,7 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return context.label + ': ' + formatCurrency(context.parsed);
+                                    return context.label + ': Rs ' + new Intl.NumberFormat('en-IN').format(context.parsed);
                                 }
                             }
                         }
@@ -415,23 +475,27 @@
                 }
             });
 
-            // Line Chart (first 12 months)
+            // Line Chart (full tenure with max 15 points)
             const lineCtx = document.getElementById('lineChart').getContext('2d');
-            const first12Months = amortizationSchedule.slice(0, 12);
+            
+            // Calculate interval for max 15 points
+            const totalMonths = amortizationSchedule.length;
+            const interval = Math.max(1, Math.ceil(totalMonths / 15));
+            const chartData = amortizationSchedule.filter((_, index) => index % interval === 0 || index === totalMonths - 1);
             
             lineChart = new Chart(lineCtx, {
                 type: 'line',
                 data: {
-                    labels: first12Months.map(item => `Month ${item.month}`),
+                    labels: chartData.map(item => `Month ${item.month}`),
                     datasets: [{
                         label: 'Principal',
-                        data: first12Months.map(item => Math.round(item.principal)),
+                        data: chartData.map(item => Math.round(item.principal)),
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         tension: 0.1
                     }, {
                         label: 'Interest',
-                        data: first12Months.map(item => Math.round(item.interest)),
+                        data: chartData.map(item => Math.round(item.interest)),
                         borderColor: '#f59e0b',
                         backgroundColor: 'rgba(245, 158, 11, 0.1)',
                         tension: 0.1
@@ -445,7 +509,7 @@
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) {
-                                    return '₹' + new Intl.NumberFormat('en-IN').format(value);
+                                    return 'Rs ' + new Intl.NumberFormat('en-IN').format(value);
                                 }
                             }
                         }
@@ -454,7 +518,7 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                    return context.dataset.label + ': Rs ' + new Intl.NumberFormat('en-IN').format(context.parsed.y);
                                 }
                             }
                         }
@@ -463,34 +527,162 @@
             });
         }
 
-        // Export to CSV
+        // Export to CSV (fixed formatting)
         function exportToCSV() {
+            const currentUrl = window.location.href;
             const csvContent = [
                 ['EMI Calculator Report'],
-                ['Loan Amount', formatCurrency(loanAmount)],
+                ['Loan Amount', formatCurrencyForCSV(loanAmount)],
                 ['Interest Rate', `${interestRate}%`],
                 ['Loan Tenure', `${loanTenure} months`],
-                ['Monthly EMI', document.getElementById('monthlyEmi').textContent],
-                ['Total Interest', document.getElementById('totalInterest').textContent],
-                ['Total Amount', document.getElementById('totalAmount').textContent],
+                ['Monthly EMI', formatCurrencyForCSV(document.getElementById('monthlyEmi').textContent.replace(/[₹,]/g, ''))],
+                ['Total Interest', formatCurrencyForCSV(document.getElementById('totalInterest').textContent.replace(/[₹,]/g, ''))],
+                ['Total Amount', formatCurrencyForCSV(document.getElementById('totalAmount').textContent.replace(/[₹,]/g, ''))],
+                [],
+                [`Generated by: ${currentUrl}`],
                 [],
                 ['Month', 'EMI', 'Principal', 'Interest', 'Balance'],
                 ...amortizationSchedule.map(row => [
                     row.month,
-                    Math.round(row.emi),
-                    Math.round(row.principal),
-                    Math.round(row.interest),
-                    Math.round(row.balance)
+                    formatCurrencyForCSV(row.emi),
+                    formatCurrencyForCSV(row.principal),
+                    formatCurrencyForCSV(row.interest),
+                    formatCurrencyForCSV(row.balance)
                 ])
             ].map(row => row.join(',')).join('\n');
 
-            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `EMICalc_${loanAmount}_${interestRate}_${loanTenure}.csv`;
             a.click();
             window.URL.revokeObjectURL(url);
+        }
+
+        // Export to PDF
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            const currentUrl = window.location.href;
+            
+            // Title
+            pdf.setFontSize(20);
+            pdf.setTextColor(59, 130, 246);
+            pdf.text('💰 EMI Calculator Report', 20, 30);
+            
+            // Summary section
+            pdf.setFontSize(16);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text('Loan Summary', 20, 50);
+            
+            pdf.setFontSize(12);
+            let yPos = 65;
+            const summaryData = [
+                ['Loan Amount:', `Rs ${new Intl.NumberFormat('en-IN').format(loanAmount)}`],
+                ['Interest Rate:', `${interestRate}% per annum`],
+                ['Loan Tenure:', `${loanTenure} months (${Math.round(loanTenure/12)} years)`],
+                ['Monthly EMI:', `Rs ${new Intl.NumberFormat('en-IN').format(parseFloat(document.getElementById('monthlyEmi').textContent.replace(/[₹,]/g, '')))}`],
+                ['Total Interest:', `Rs ${new Intl.NumberFormat('en-IN').format(parseFloat(document.getElementById('totalInterest').textContent.replace(/[₹,]/g, '')))}`],
+                ['Total Amount:', `Rs ${new Intl.NumberFormat('en-IN').format(parseFloat(document.getElementById('totalAmount').textContent.replace(/[₹,]/g, '')))}`]
+            ];
+            
+            summaryData.forEach(([label, value]) => {
+                pdf.setFont(undefined, 'bold');
+                pdf.text(label, 20, yPos);
+                pdf.setFont(undefined, 'normal');
+                pdf.text(value, 80, yPos);
+                yPos += 10;
+            });
+            
+            // Add charts info
+            yPos += 10;
+            pdf.setFontSize(14);
+            pdf.setFont(undefined, 'bold');
+            pdf.text('Key Insights:', 20, yPos);
+            yPos += 15;
+            
+            pdf.setFontSize(11);
+            pdf.setFont(undefined, 'normal');
+            const principalPercentage = ((loanAmount / (loanAmount + parseFloat(document.getElementById('totalInterest').textContent.replace(/[₹,]/g, '')))) * 100).toFixed(1);
+            const interestPercentage = (100 - principalPercentage).toFixed(1);
+            
+            pdf.text(`• Principal amount represents ${principalPercentage}% of total payment`, 25, yPos);
+            yPos += 8;
+            pdf.text(`• Interest amount represents ${interestPercentage}% of total payment`, 25, yPos);
+            yPos += 8;
+            pdf.text(`• You will pay Rs ${new Intl.NumberFormat('en-IN').format(parseFloat(document.getElementById('totalInterest').textContent.replace(/[₹,]/g, '')))} as interest over the loan tenure`, 25, yPos);
+            
+            // New page for schedule
+            pdf.addPage();
+            pdf.setFontSize(16);
+            pdf.setFont(undefined, 'bold');
+            pdf.text('Repayment Schedule', 20, 30);
+            
+            // Table headers
+            pdf.setFontSize(10);
+            pdf.setFont(undefined, 'bold');
+            const headers = ['Month', 'EMI', 'Principal', 'Interest', 'Balance'];
+            let xPositions = [20, 50, 80, 120, 160];
+            
+            headers.forEach((header, index) => {
+                pdf.text(header, xPositions[index], 45);
+            });
+            
+            // Table data (first 30 rows to fit on page)
+            pdf.setFont(undefined, 'normal');
+            yPos = 55;
+            const maxRows = Math.min(30, amortizationSchedule.length);
+            
+            for (let i = 0; i < maxRows; i++) {
+                const row = amortizationSchedule[i];
+                const rowData = [
+                    row.month.toString(),
+                    new Intl.NumberFormat('en-IN').format(Math.round(row.emi)),
+                    new Intl.NumberFormat('en-IN').format(Math.round(row.principal)),
+                    new Intl.NumberFormat('en-IN').format(Math.round(row.interest)),
+                    new Intl.NumberFormat('en-IN').format(Math.round(row.balance))
+                ];
+                
+                rowData.forEach((data, index) => {
+                    pdf.text(data, xPositions[index], yPos);
+                });
+                yPos += 7;
+                
+                // Add new page if needed
+                if (yPos > 270 && i < maxRows - 1) {
+                    pdf.addPage();
+                    yPos = 30;
+                    // Repeat headers
+                    pdf.setFont(undefined, 'bold');
+                    headers.forEach((header, index) => {
+                        pdf.text(header, xPositions[index], yPos);
+                    });
+                    pdf.setFont(undefined, 'normal');
+                    yPos += 10;
+                }
+            }
+            
+            // Add remaining rows info if truncated
+            if (amortizationSchedule.length > 30) {
+                yPos += 10;
+                pdf.setFontSize(9);
+                pdf.setTextColor(100, 100, 100);
+                pdf.text(`... and ${amortizationSchedule.length - 30} more rows. Download complete CSV for full schedule.`, 20, yPos);
+            }
+            
+            // Footer
+            const pageCount = pdf.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                pdf.setPage(i);
+                pdf.setFontSize(8);
+                pdf.setTextColor(100, 100, 100);
+                pdf.text(`Generated by: ${currentUrl}`, 20, 285);
+                pdf.text(`Page ${i} of ${pageCount}`, 160, 285);
+            }
+            
+            // Save PDF
+            pdf.save(`EMICalc_${loanAmount}_${interestRate}_${loanTenure}.pdf`);
         }
 
         // Toggle schedule
@@ -573,7 +765,7 @@
         });
 
         document.getElementById('exportCSV').addEventListener('click', exportToCSV);
-        document.getElementById('toggleSchedule').addEventListener('click', toggleSchedule);
+        document.getElementById('exportPDF').addEventListener('click', exportToPDF);
 
         // Initialize slider background
         updateSliderBackground();
