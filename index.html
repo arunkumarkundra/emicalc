@@ -1,44 +1,9 @@
-// Toggle schedule
-        function toggleSchedule() {
-            const scheduleSection = document.getElementById('scheduleSection');
-            const isHidden = scheduleSection.classList.contains('hidden');
-            
-            if (isHidden) {
-                // Show schedule
-                scheduleSection.classList.remove('hidden');
-                
-                // Populate table
-                const tbody = document.getElementById('scheduleBody');
-                tbody.innerHTML = amortizationSchedule.map((row, index) => `
-                    <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.month}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(row.emi)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">${formatCurrency(row.principal)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600">${formatCurrency(row.interest)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(row.balance)}</td>
-                    </tr>
-                `).join('');
-                
-                document.getElementById('toggleSchedule').innerHTML = `
-                    <i data-lucide="eye-off" class="w-4 h-4 mr-2"></i>
-                    Hide Schedule
-                `;
-            } else {
-                // Hide schedule
-                scheduleSection.classList.add('hidden');
-                document.getElementById('toggleSchedule').innerHTML = `
-                    <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
-                    Schedule
-                `;
-            }
-            
-            lucide.createIcons();
-        }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💰 Enhanced EMI Calculator</title>
+    <title>Enhanced EMI Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
@@ -87,9 +52,9 @@
         <!-- Header -->
         <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-                <i data-lucide="calculator" class="w-8 h-8 text-blue-600"></i>
+                <span class="text-2xl">💰</span>
             </div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">💰 EMI Calculator</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">EMI Calculator</h1>
             <p class="text-gray-600 max-w-md mx-auto">
                 Calculate your Equated Monthly Installment with advanced analytics and export features
             </p>
@@ -211,7 +176,7 @@
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="grid grid-cols-1 gap-3 pt-4">
+                    <div class="grid grid-cols-2 gap-3 pt-4">
                         <button
                             id="exportCSV"
                             class="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -220,13 +185,21 @@
                             <i data-lucide="download" class="w-4 h-4 mr-2"></i>
                             Export CSV
                         </button>
+                        <button
+                            id="exportPDF"
+                            class="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            disabled
+                        >
+                            <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                            Download PDF
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Charts Section -->
-        <div id="chartsSection" class="grid lg:grid-cols-2 gap-8 mb-8 hidden">
+        <div id="chartsSection" class="grid lg:grid-cols-2 gap-8 mb-8">
             <!-- Pie Chart -->
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -257,14 +230,6 @@
                     <i data-lucide="calendar" class="w-5 h-5 mr-2 text-teal-600"></i>
                     Loan Repayment Schedule
                 </h3>
-                <button
-                    id="exportPDF"
-                    class="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    disabled
-                >
-                    <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
-                    Download PDF
-                </button>
             </div>
             <div class="table-container">
                 <table id="scheduleTable" class="min-w-full divide-y divide-gray-200">
@@ -415,8 +380,11 @@
 
             // Populate schedule table
             populateScheduleTable();
+            updateCharts(principal, totalInterest);
+            updateIncrementLabels();
+        }
 
-            // Populate schedule table
+        // Populate schedule table
         function populateScheduleTable() {
             const tbody = document.getElementById('scheduleBody');
             tbody.innerHTML = amortizationSchedule.map((row, index) => `
@@ -429,15 +397,9 @@
                 </tr>
             `).join('');
         }
-            updateCharts(principal, totalInterest);
-            updateIncrementLabels();
-        }
 
-        // Update charts
         // Update charts
         function updateCharts(principal, totalInterest) {
-            document.getElementById('chartsSection').classList.remove('hidden');
-
             // Destroy existing charts
             if (pieChart) pieChart.destroy();
             if (lineChart) lineChart.destroy();
@@ -560,16 +522,16 @@
             window.URL.revokeObjectURL(url);
         }
 
-        // Export to PDF
+        // Export to PDF with complete schedule
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
             const currentUrl = window.location.href;
             
-            // Title
+            // Title (removed emoji)
             pdf.setFontSize(20);
             pdf.setTextColor(59, 130, 246);
-            pdf.text('💰 EMI Calculator Report', 20, 30);
+            pdf.text('EMI Calculator Report', 20, 30);
             
             // Summary section
             pdf.setFontSize(16);
@@ -613,65 +575,59 @@
             yPos += 8;
             pdf.text(`• You will pay Rs ${new Intl.NumberFormat('en-IN').format(parseFloat(document.getElementById('totalInterest').textContent.replace(/[₹,]/g, '')))} as interest over the loan tenure`, 25, yPos);
             
-            // New page for schedule
-            pdf.addPage();
-            pdf.setFontSize(16);
-            pdf.setFont(undefined, 'bold');
-            pdf.text('Repayment Schedule', 20, 30);
+            // Complete schedule with multiple pages
+            let currentRow = 0;
+            let currentPage = 1;
             
-            // Table headers
-            pdf.setFontSize(10);
-            pdf.setFont(undefined, 'bold');
-            const headers = ['Month', 'EMI', 'Principal', 'Interest', 'Balance'];
-            let xPositions = [20, 50, 80, 120, 160];
-            
-            headers.forEach((header, index) => {
-                pdf.text(header, xPositions[index], 45);
-            });
-            
-            // Table data (first 30 rows to fit on page)
-            pdf.setFont(undefined, 'normal');
-            yPos = 55;
-            const maxRows = Math.min(30, amortizationSchedule.length);
-            
-            for (let i = 0; i < maxRows; i++) {
-                const row = amortizationSchedule[i];
-                const rowData = [
-                    row.month.toString(),
-                    new Intl.NumberFormat('en-IN').format(Math.round(row.emi)),
-                    new Intl.NumberFormat('en-IN').format(Math.round(row.principal)),
-                    new Intl.NumberFormat('en-IN').format(Math.round(row.interest)),
-                    new Intl.NumberFormat('en-IN').format(Math.round(row.balance))
-                ];
-                
-                rowData.forEach((data, index) => {
-                    pdf.text(data, xPositions[index], yPos);
-                });
-                yPos += 7;
-                
-                // Add new page if needed
-                if (yPos > 270 && i < maxRows - 1) {
+            while (currentRow < amortizationSchedule.length) {
+                // Add new page for schedule (except for first time)
+                if (currentPage > 1) {
                     pdf.addPage();
-                    yPos = 30;
-                    // Repeat headers
-                    pdf.setFont(undefined, 'bold');
-                    headers.forEach((header, index) => {
-                        pdf.text(header, xPositions[index], yPos);
-                    });
-                    pdf.setFont(undefined, 'normal');
-                    yPos += 10;
                 }
+                
+                pdf.setFontSize(16);
+                pdf.setFont(undefined, 'bold');
+                pdf.text(`Repayment Schedule ${currentPage > 1 ? '(continued)' : ''}`, 20, 30);
+                
+                // Table headers
+                pdf.setFontSize(10);
+                pdf.setFont(undefined, 'bold');
+                const headers = ['Month', 'EMI', 'Principal', 'Interest', 'Balance'];
+                let xPositions = [20, 50, 80, 120, 160];
+                
+                headers.forEach((header, index) => {
+                    pdf.text(header, xPositions[index], 45);
+                });
+                
+                // Table data
+                pdf.setFont(undefined, 'normal');
+                yPos = 55;
+                let rowsOnThisPage = 0;
+                const maxRowsPerPage = 35; // Increased capacity
+                
+                while (currentRow < amortizationSchedule.length && rowsOnThisPage < maxRowsPerPage && yPos < 270) {
+                    const row = amortizationSchedule[currentRow];
+                    const rowData = [
+                        row.month.toString(),
+                        new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(row.emi)),
+                        new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(row.principal)),
+                        new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(row.interest)),
+                        new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(row.balance))
+                    ];
+                    
+                    rowData.forEach((data, index) => {
+                        pdf.text(data, xPositions[index], yPos);
+                    });
+                    
+                    yPos += 6;
+                    currentRow++;
+                    rowsOnThisPage++;
+                }
+                
+                currentPage++;
             }
             
-            // Add remaining rows info if truncated
-            if (amortizationSchedule.length > 30) {
-                yPos += 10;
-                pdf.setFontSize(9);
-                pdf.setTextColor(100, 100, 100);
-                pdf.text(`... and ${amortizationSchedule.length - 30} more rows. Download complete CSV for full schedule.`, 20, yPos);
-            }
-            
-            // Footer
+            // Footer on all pages
             const pageCount = pdf.internal.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
                 pdf.setPage(i);
@@ -683,43 +639,6 @@
             
             // Save PDF
             pdf.save(`EMICalc_${loanAmount}_${interestRate}_${loanTenure}.pdf`);
-        }
-
-        // Toggle schedule
-        function toggleSchedule() {
-            const scheduleSection = document.getElementById('scheduleSection');
-            const isHidden = scheduleSection.classList.contains('hidden');
-            
-            if (isHidden) {
-                // Show schedule
-                scheduleSection.classList.remove('hidden');
-                
-                // Populate table
-                const tbody = document.getElementById('scheduleBody');
-                tbody.innerHTML = amortizationSchedule.map((row, index) => `
-                    <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.month}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(row.emi)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">${formatCurrency(row.principal)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600">${formatCurrency(row.interest)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(row.balance)}</td>
-                    </tr>
-                `).join('');
-                
-                document.getElementById('toggleSchedule').innerHTML = `
-                    <i data-lucide="eye-off" class="w-4 h-4 mr-2"></i>
-                    Hide Schedule
-                `;
-            } else {
-                // Hide schedule
-                scheduleSection.classList.add('hidden');
-                document.getElementById('toggleSchedule').innerHTML = `
-                    <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
-                    Schedule
-                `;
-            }
-            
-            lucide.createIcons();
         }
 
         // Event listeners
@@ -767,8 +686,6 @@
         document.getElementById('exportCSV').addEventListener('click', exportToCSV);
         document.getElementById('exportPDF').addEventListener('click', exportToPDF);
 
-        // Initialize slider background
-        updateSliderBackground();
     </script>
 </body>
 </html>
