@@ -274,11 +274,24 @@
 
         // Initialize icons and calculate EMI immediately
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing...');
             lucide.createIcons();
-            updateIncrementLabels();
-            updateSliderBackground();
-            // Force immediate calculation on page load
-            calculateEmi();
+            
+            // Small delay to ensure all elements are ready
+            setTimeout(() => {
+                updateIncrementLabels();
+                updateSliderBackground();
+                
+                // Ensure variables are set to input values
+                loanAmount = parseFloat(loanAmountInput.value) || 5000000;
+                interestRate = parseFloat(interestRateInput.value) || 8.5;
+                loanTenure = parseInt(loanTenureInput.value) || 180;
+                
+                console.log('Initial values:', { loanAmount, interestRate, loanTenure });
+                
+                // Force immediate calculation on page load
+                calculateEmi();
+            }, 100);
         });
 
         // Smart increment calculation
@@ -351,6 +364,8 @@
 
         // Calculate EMI
         function calculateEmi() {
+            console.log('calculateEmi called with:', { loanAmount, interestRate, loanTenure });
+            
             const principal = parseFloat(loanAmount);
             const monthlyRate = parseFloat(interestRate) / 12 / 100;
             const months = parseInt(loanTenure);
@@ -368,6 +383,8 @@
                 totalInterest = totalAmount - principal;
             }
 
+            console.log('Calculated:', { emi, totalAmount, totalInterest });
+
             // Update display
             document.getElementById('monthlyEmi').textContent = formatCurrency(emi);
             document.getElementById('totalInterest').textContent = formatCurrency(totalInterest);
@@ -375,6 +392,7 @@
 
             // Generate schedule
             amortizationSchedule = generateAmortizationSchedule(principal, monthlyRate, months, emi);
+            console.log('Generated schedule with', amortizationSchedule.length, 'rows');
 
             // Enable buttons
             document.getElementById('exportCSV').disabled = false;
@@ -402,93 +420,110 @@
 
         // Update charts
         function updateCharts(principal, totalInterest) {
+            console.log('updateCharts called with:', { principal, totalInterest });
+            
             // Destroy existing charts
-            if (pieChart) pieChart.destroy();
-            if (lineChart) lineChart.destroy();
+            if (pieChart) {
+                pieChart.destroy();
+                pieChart = null;
+            }
+            if (lineChart) {
+                lineChart.destroy();
+                lineChart = null;
+            }
 
-            // Pie Chart
-            const pieCtx = document.getElementById('pieChart').getContext('2d');
-            pieChart = new Chart(pieCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Principal', 'Interest'],
-                    datasets: [{
-                        data: [principal, totalInterest],
-                        backgroundColor: ['#3b82f6', '#f59e0b'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: false,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20
-                            }
+            // Small delay to ensure canvas elements are ready
+            setTimeout(() => {
+                try {
+                    // Pie Chart
+                    const pieCtx = document.getElementById('pieChart').getContext('2d');
+                    pieChart = new Chart(pieCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Principal', 'Interest'],
+                            datasets: [{
+                                data: [principal, totalInterest],
+                                backgroundColor: ['#3b82f6', '#f59e0b'],
+                                borderWidth: 0
+                            }]
                         },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.label + ': Rs ' + new Intl.NumberFormat('en-IN').format(context.parsed);
+                        options: {
+                            responsive: false,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 20
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.label + ': Rs ' + new Intl.NumberFormat('en-IN').format(context.parsed);
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
-            });
+                    });
 
-            // Line Chart (full tenure with max 15 points)
-            const lineCtx = document.getElementById('lineChart').getContext('2d');
-            
-            // Calculate interval for max 15 points
-            const totalMonths = amortizationSchedule.length;
-            const interval = Math.max(1, Math.ceil(totalMonths / 15));
-            const chartData = amortizationSchedule.filter((_, index) => index % interval === 0 || index === totalMonths - 1);
-            
-            lineChart = new Chart(lineCtx, {
-                type: 'line',
-                data: {
-                    labels: chartData.map(item => `Month ${item.month}`),
-                    datasets: [{
-                        label: 'Principal',
-                        data: chartData.map(item => Math.round(item.principal)),
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.1
-                    }, {
-                        label: 'Interest',
-                        data: chartData.map(item => Math.round(item.interest)),
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return 'Rs ' + new Intl.NumberFormat('en-IN').format(value);
+                    // Line Chart (full tenure with max 15 points)
+                    const lineCtx = document.getElementById('lineChart').getContext('2d');
+                    
+                    // Calculate interval for max 15 points
+                    const totalMonths = amortizationSchedule.length;
+                    const interval = Math.max(1, Math.ceil(totalMonths / 15));
+                    const chartData = amortizationSchedule.filter((_, index) => index % interval === 0 || index === totalMonths - 1);
+                    
+                    lineChart = new Chart(lineCtx, {
+                        type: 'line',
+                        data: {
+                            labels: chartData.map(item => `Month ${item.month}`),
+                            datasets: [{
+                                label: 'Principal',
+                                data: chartData.map(item => Math.round(item.principal)),
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.1
+                            }, {
+                                label: 'Interest',
+                                data: chartData.map(item => Math.round(item.interest)),
+                                borderColor: '#f59e0b',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                tension: 0.1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return 'Rs ' + new Intl.NumberFormat('en-IN').format(value);
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.dataset.label + ': Rs ' + new Intl.NumberFormat('en-IN').format(context.parsed.y);
+                                        }
+                                    }
                                 }
                             }
                         }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': Rs ' + new Intl.NumberFormat('en-IN').format(context.parsed.y);
-                                }
-                            }
-                        }
-                    }
+                    });
+                    
+                    console.log('Charts created successfully');
+                } catch (error) {
+                    console.error('Error creating charts:', error);
                 }
-            });
+            }, 50);
         }
 
         // Export to CSV (fixed formatting)
@@ -689,4 +724,3 @@
     </script>
 </body>
 </html>
-            
