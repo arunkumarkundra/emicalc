@@ -1,4 +1,4 @@
-// emi-calculator.js
+// emicalc-api.js
 (function(global) {
     'use strict';
     
